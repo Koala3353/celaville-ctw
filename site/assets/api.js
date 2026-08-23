@@ -35,12 +35,11 @@
 'use strict';
 
 var CelavilleAPI = (function(){
-  // REPLACE_WITH_NEW_CTW_APPS_SCRIPT_EXEC_URL -- this must be filled in once
-  // the new Code.gs for this "Letters from the Booth" site is deployed as
-  // its OWN Apps Script Web App deployment. Do not reuse the old
-  // participant-facing Wrapped site's /exec URL -- that deployment serves a
-  // different payload shape and is owned by a different Code.gs.
-  var WEB_APP_URL = 'REPLACE_WITH_NEW_CTW_APPS_SCRIPT_EXEC_URL';
+  // This project's own Apps Script Web App deployment (celaville-ctw's
+  // Code.gs), verified via ?api=1&mock=1 to return the CTW payload shape --
+  // NOT the participant-facing Wrapped site's /exec URL, which is a
+  // different deployment with a different payload entirely.
+  var WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyL-lT6JHLVOIZtu-7VjMPtj6wpfGKOi7wdgdMOkrJ8oGjtSwYhS0LQZscCTpGA0Gn5jA/exec';
   var TIMEOUT_MS = 12000;
 
   // 'ctw:' (not the old participant site's 'cv:') so localStorage keys never
