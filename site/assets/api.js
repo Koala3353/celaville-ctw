@@ -1,4 +1,4 @@
-// api.js -- Celaville Wrapped
+// api.js -- Letters from the Booth
 // The only file that knows Apps Script exists. Everything else (app.js,
 // slides.js, share.js) just calls CelavilleAPI.loadPayload()/ping() and gets
 // back plain JS objects/promises.
@@ -35,10 +35,17 @@
 'use strict';
 
 var CelavilleAPI = (function(){
-  var WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzCCk2VbgN3E_C4FSQLHlBkR7dCutmyl2JaoWBtEkRr8eZJbrwP9GbWVBKDtPDnUFytKQ/exec';
+  // REPLACE_WITH_NEW_CTW_APPS_SCRIPT_EXEC_URL -- this must be filled in once
+  // the new Code.gs for this "Letters from the Booth" site is deployed as
+  // its OWN Apps Script Web App deployment. Do not reuse the old
+  // participant-facing Wrapped site's /exec URL -- that deployment serves a
+  // different payload shape and is owned by a different Code.gs.
+  var WEB_APP_URL = 'REPLACE_WITH_NEW_CTW_APPS_SCRIPT_EXEC_URL';
   var TIMEOUT_MS = 12000;
 
-  function cacheKey(token){ return 'cv:payload:' + token; }
+  // 'ctw:' (not the old participant site's 'cv:') so localStorage keys never
+  // collide if someone has both sites open in the same browser profile.
+  function cacheKey(token){ return 'ctw:payload:' + token; }
 
   function readCache(token){
     try {

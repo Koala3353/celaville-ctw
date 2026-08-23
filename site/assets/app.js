@@ -1,9 +1,9 @@
-// app.js -- Celaville Wrapped
-// The engine: fetch bootstrap, slide DOM construction from S[], the village
-// pan/time-of-day system, show()/next()/prev(), the swipe/spring/rubber
-// physics, keydown + hold-to-pause handlers, and the loader/cloud-descent
-// reveal. Physics constants (HYST/COMMIT/FLICK, stiffness/damping) are
-// UNCHANGED from Wrapped.html -- tuned, not touched, by this migration.
+// app.js -- Letters from the Booth
+// The engine: fetch bootstrap, slide DOM construction from S[], show()/
+// next()/prev(), the swipe/spring/rubber physics, keydown + hold-to-pause
+// handlers, and the loader-to-first-slide reveal transition. Physics
+// constants (HYST/COMMIT/FLICK, stiffness/damping) are UNCHANGED from the
+// original Wrapped build -- tuned, not touched, by this migration.
 //
 // Boot order: index.html loads api.js, slides.js, share.js, then this file.
 // boot() (bottom of this file) is the only top-level side effect: it reads
@@ -22,40 +22,6 @@ function vibrate(pattern){
   if(!REDUCED && navigator.vibrate){ try{ navigator.vibrate(pattern); }catch(e){} }
 }
 
-/* Three staggered bursts over the recap's sky. Brand colors only, spoke count
-   and radius kept modest -- this is a wink at the finale, not a light show. */
-/* item 4: one brand-shaped glyph per burst, cycling through the three so all
-   three (mahjong tile, dice pips, lantern) show up across the recap's three
-   staggered bursts instead of piling every shape onto every burst -- same
-   "wink, not a light show" restraint as the dot spokes above. The plain
-   colored-dot spokes are untouched and stay the prefers-reduced-motion
-   fallback (styles.css hides .fw-glyph entirely under reduced motion, same
-   as the existing .fw i reduced-motion rule already does for the spokes). */
-var FW_GLYPHS=[
-  {cls:'fw-tile', ang:38},
-  {cls:'fw-dice', ang:154},
-  {cls:'fw-lantern', ang:272}
-];
-function fireworksHTML(){
-  var BURSTS=[
-    {x:22, y:20, colors:['#D94F40','#E4B64A'], delay:0},
-    {x:76, y:14, colors:['#5E8F6B','#9FD0EB'], delay:.35},
-    {x:50, y:28, colors:['#E4B64A','#D94F40'], delay:.7},
-  ];
-  var out='<div class="fireworks" aria-hidden="true">';
-  BURSTS.forEach(function(b,bi){
-    var spokes='', n=10;
-    for(var i=0;i<n;i++){
-      var ang=(360/n*i)+'deg', c=b.colors[i%b.colors.length], d=(b.delay+i*0.012).toFixed(3);
-      spokes+='<i style="--ang:'+ang+';--c:'+c+';--d:'+d+'s"></i>';
-    }
-    var g=FW_GLYPHS[bi%FW_GLYPHS.length];
-    var glyph='<i class="fw-glyph '+g.cls+'" style="--ang:'+g.ang+'deg;--d:'+(b.delay+0.05).toFixed(3)+'s"></i>';
-    out+='<div class="fw" style="left:'+b.x+'%;top:'+b.y+'%">'+spokes+glyph+'</div>';
-  });
-  return out+'</div>';
-}
-
 var slidesEl=document.getElementById('slides'),
     barsEl=document.getElementById('bars'),
     hintEl=document.getElementById('hint'),
@@ -72,11 +38,7 @@ function buildDom(){
     var d=document.createElement('section');
     var isRecap=(i===S.length-1);
     d.className='slide'+(s.cls?' '+s.cls:'')+(isRecap?' recap':'');
-    // Fireworks are a sibling of .inner, not a child inside it -- inside,
-    // they'd pick up the per-child entrance stagger
-    // (.inner > *:nth-child(n)) and fight it for the transform property on
-    // the same element.
-    d.innerHTML='<div class="inner">'+s.html+'</div>'+(isRecap?fireworksHTML():'');
+    d.innerHTML='<div class="inner">'+s.html+'</div>';
     slidesEl.appendChild(d);
     var b=document.createElement('div');
     b.className='bar';b.innerHTML='<i></i>';
@@ -91,219 +53,6 @@ function buildDom(){
   slidesEl.addEventListener('animationend', function(e){
     if(e.animationName==='rise') e.target.classList.add('settled');
   });
-
-  /* The picket fence is generated rather than hand-listed: four stretches of
-     evenly spaced pickets with two rails behind them. Hand-writing 60
-     <path>s was how the first pass ended up with three lopsided posts next
-     to Ayi. */
-  (function buildFence(){
-    var f=document.getElementById('fence');
-    if(!f) return;
-    var stretches=[[430,560],[900,1040],[1700,1840],[2210,2330]], out='';
-    stretches.forEach(function(r){
-      var x0=r[0], x1=r[1];
-      out+='<path d="M'+x0+' 50 h'+(x1-x0)+'" stroke-width="2.2"/>';
-      out+='<path d="M'+x0+' 62 h'+(x1-x0)+'" stroke-width="2.2"/>';
-      // Gemini-generated picket (gemini-svg-prompts.md, prompt 6): a
-      // point-topped panel plus two knot dots, translated so its own bottom
-      // (y29.4) and center (x4) land where the old rect-and-triangle
-      // picket's bottom (y70) and center (x+3) used to, keeping the rail
-      // lines above at y50/62 still crossing through it in the same place.
-      for(var x=x0;x<=x1-6;x+=15){
-        out+='<g transform="translate('+(x-1)+',40.6)">'+
-          '<polygon points="4,2.5 7,6.5 7,29.4 1,29.4 1,6.5"/>'+
-          '<circle cx="4" cy="11" r="0.5" fill="#4F4036"/>'+
-          '<circle cx="4" cy="23" r="0.5" fill="#4F4036"/>'+
-        '</g>';
-      }
-    });
-    f.innerHTML=out;
-  })();
-
-  ['vclouds','vfar','vmid','vnear'].forEach(function(id){
-    var w=document.getElementById(id);
-    if(w) panEls[id]=w.querySelector('svg');
-  });
-  warmEl=document.getElementById('vwarm'); skyEl=document.getElementById('vsky');
-  walkerEl=document.getElementById('walker'); printsEl=document.getElementById('prints');
-  villageWrap=document.getElementById('village');
-  initParallax();
-  initLandmarkTaps();
-}
-
-/* ── item 5: explorable recap map ─────────────────────────────────────────
-   The schoolhouse, mahjong pavilion and lantern field are plain decorative
-   SVG inside #village (pointer-events:none by default, see styles.css) for
-   every other slide. Only while the recap is on screen does #village gain
-   .recap-active, which is the ONLY thing that flips .landmark's own
-   pointer-events back to auto (styles.css) -- so this tap surface exists
-   nowhere else in the deck. One delegated listener on #village (rather than
-   one per landmark) since buildFence()-style per-shape wiring would have to
-   run again every time the walk's panorama markup changed. */
-var LANDMARK_TIP_MS=2600;
-function landmarkStatText(key){
-  if(key==='course' && P.basics && P.basics.course){
-    return 'Your course: '+esc(P.basics.course)+(P.basics.courseIsSolo?' · only you':' · '+P.basics.coursePct+'% of Celaville');
-  }
-  if(key==='mahjong' && P.mahjong){
-    return 'Mahjong: '+P.mahjong.games+' '+plural(P.mahjong.games,'game')+' · '+P.mahjong.coins+' coins';
-  }
-  if(key==='journey' && P.journey){
-    return 'You showed up '+P.journey.totalVisits+'x, '+P.journey.eventCount+' of '+P.journey.totalEvents+' events';
-  }
-  return null;
-}
-var landmarkTip=null, landmarkTipT=null;
-function showLandmarkTip(lm){
-  var text=landmarkStatText(lm.getAttribute('data-lm'));
-  if(!text) return;
-  // the tap affordance itself: retrigger the glow/scale pulse even on a
-  // second tap of the same landmark, the same force-reflow trick buildFence's
-  // neighbours (countUp/animateDonuts) already use elsewhere in this file.
-  lm.classList.remove('lm-tap'); void lm.getBoundingClientRect(); lm.classList.add('lm-tap');
-  if(!landmarkTip){
-    landmarkTip=document.createElement('div');
-    landmarkTip.className='lm-tip';
-    landmarkTip.setAttribute('aria-live','polite');
-    frameEl.appendChild(landmarkTip);
-  }
-  landmarkTip.textContent=text;
-  landmarkTip.classList.remove('show'); void landmarkTip.offsetWidth; landmarkTip.classList.add('show');
-  clearTimeout(landmarkTipT);
-  landmarkTipT=setTimeout(function(){ landmarkTip.classList.remove('show'); }, LANDMARK_TIP_MS);
-}
-function initLandmarkTaps(){
-  if(!villageWrap) return;
-  // Listens on #village, which sits BETWEEN the tapped landmark and #frame in
-  // the DOM (index.html), so this fires and can stopPropagation() before
-  // frameEl's own click handler (tap-left-third/right-two-thirds nav) ever
-  // sees the event -- but only when the recap is actually on screen; every
-  // other slide lets the click bubble straight through untouched.
-  villageWrap.addEventListener('click', function(e){
-    if(!villageWrap.classList.contains('recap-active')) return;
-    var lm=e.target.closest('.landmark');
-    if(!lm) return;
-    e.stopPropagation();
-    showLandmarkTip(lm);
-  });
-}
-
-/* ── walking through the village ──────────────────────────────────────────
-   One journey, four layers, one clock. The panorama is 2600 wide inside a
-   520-wide frame, so there are 2080px of village to cross; progress through
-   the slides maps straight onto that distance, and each layer covers a
-   fraction of it so nearer things sweep past faster. */
-var VILLAGE_W=2600, PAN_RATE={vclouds:0.20, vfar:0.45, vmid:0.75, vnear:1.00};
-var panEls={}, warmEl=null, skyEl=null, walkerEl=null, printsEl=null, villageWrap=null;
-
-/* The walk runs morning -> noon -> golden -> dusk. Keyed off how far along
-   the story the reader is rather than off act boundaries, so it still warms
-   smoothly for the sparse members whose story is only eight slides long. */
-/* Sunrise through night, not just morning through dusk -- paintVillage's
-   own lerp below is written generically over TOD.length, so extending this
-   array is the entire change; no other math needed to move. Two new stops:
-   sunrise opens the walk on a warm pink dawn instead of straight into pale
-   morning blue, and night closes it in a dusky indigo rather than stopping
-   at dusk's lavender. `warm` keeps doing the same double duty it already
-   does -- it's not really "warmth", it's "how late in the day this is",
-   which is why night's warm is the highest value in the table even though
-   its sky is the coolest-toned: it's what pushes window-glow/stars/
-   fireflies to their most visible state, and night is where all three
-   should be maxed out. */
-var TOD=[
-  {t:'#F7CBAF', b:'#FFF2E4', warm:0.05},  /* sunrise  */
-  {t:'#BFE0F3', b:'#FFFCF7', warm:0},     /* morning  */
-  {t:'#A9D6EE', b:'#FDFBF6', warm:0.20},  /* midday   */
-  {t:'#F0E4CE', b:'#FFFAF2', warm:0.62},  /* golden   */
-  {t:'#CFC6D8', b:'#FBEFE4', warm:0.92},  /* dusk     */
-  {t:'#4B4771', b:'#E9DBCF', warm:1}      /* night    */
-];
-/* Plain channel-wise RGB lerp -- the TOD stops above are all opaque 6-digit
-   hexes, so this doesn't need to handle alpha or short-hex forms. */
-function lerpColor_(a,b,t){
-  var ah=parseInt(a.slice(1),16), bh=parseInt(b.slice(1),16);
-  var ar=(ah>>16)&255, ag=(ah>>8)&255, ab=ah&255;
-  var br=(bh>>16)&255, bg=(bh>>8)&255, bb=bh&255;
-  var r=Math.round(ar+(br-ar)*t), g=Math.round(ag+(bg-ag)*t), bl=Math.round(ab+(bb-ab)*t);
-  return '#'+((1<<24)+(r<<16)+(g<<8)+bl).toString(16).slice(1);
-}
-
-function paintVillage(i,total){
-  var p = total>1 ? i/(total-1) : 0;
-  // travel used to be a hardcoded VILLAGE_W-520, assuming every layer
-  // renders at a fixed 520px-wide frame. But each layer's <svg> is sized by
-  // height:auto (see the .vlayer > svg rule) so its RENDERED width comes
-  // from its own container height times its viewBox aspect ratio -- which
-  // varies by device and, since the four layers have four different aspect
-  // ratios, varies BETWEEN layers too. On a real (narrower/shorter) phone
-  // frame, vnear's actual rendered width can fall short of frameWidth +
-  // the hardcoded travel, so panning to the hardcoded distance ran past
-  // the end of its own painted content -- a transparent gap that revealed
-  // vmid's differently-colored fill underneath, seen as a hard vertical
-  // color "cliff" rather than a smooth hill.
-  // Anchoring travel to vnear's own measured width instead fixes this by
-  // construction: vnear (pan rate 1.00) can never pan past its own edge,
-  // since that edge IS what travel is measured from, and every other layer
-  // needs strictly less absolute pan (rate < 1) while rendering
-  // proportionally wider to begin with (shallower layers have taller
-  // viewBoxes relative to their container height), so they carry
-  // comfortable spare width too.
-  var frameW = (frameEl && frameEl.getBoundingClientRect().width) || 520;
-  var nearSvg = panEls.vnear;
-  var nearW = (nearSvg && nearSvg.getBoundingClientRect().width) || (VILLAGE_W - 520 + frameW);
-  var travel = Math.max(0, nearW - frameW);
-  for(var id in panEls){
-    if(!panEls[id]) continue;
-    panEls[id].style.setProperty('--pan', (-(travel*PAN_RATE[id]*p)).toFixed(1)+'px');
-  }
-  // Continuous blend between the two nearest TOD stops, not a snap to
-  // whichever quarter of the story `p` falls in. The old Math.floor(p*4)
-  // meant three-quarters of the walk held one flat color and all the
-  // change happened in three sudden jumps at the act boundaries -- exactly
-  // the "abrupt" this was flagged for. Blending on `pos`'s fractional part
-  // means every single slide nudges the sky a little, so there's no jump
-  // left for the (now-registered, see styles.css) --tod-top/--tod-bot
-  // transition to paper over -- it's smooth by construction, and the
-  // transition is just there to smooth a big jump (e.g. jumping straight to
-  // slide 0 on replay) rather than carry the whole effect on its own.
-  var pos = p*(TOD.length-1);
-  var seg0 = Math.max(0, Math.min(TOD.length-2, Math.floor(pos)));
-  var segT = pos-seg0;
-  var todA = TOD[seg0], todB = TOD[seg0+1];
-  var tod = { t: lerpColor_(todA.t, todB.t, segT), b: lerpColor_(todA.b, todB.b, segT),
-              warm: todA.warm+(todB.warm-todA.warm)*segT };
-  if(skyEl){
-    skyEl.style.setProperty('--tod-top', tod.t);
-    skyEl.style.setProperty('--tod-bot', tod.b);
-  }
-  if(warmEl) warmEl.style.setProperty('--warm', tod.warm);
-  // items 2/3: the SAME warm value #vwarm's wash already reads, exposed one
-  // level up on #village itself so the window-glow circles planted in the
-  // schoolhouse/pavilion SVGs (index.html) and the sky's star scatter can
-  // read it via CSS custom-property inheritance -- neither of them needs
-  // paintVillage to compute anything a second time.
-  if(villageWrap) villageWrap.style.setProperty('--dusk-glow', tod.warm);
-  // Also set on #frame itself (village's own parent), not just #village --
-  // #slides sits as a SIBLING of #village under #frame, so a heading/kicker
-  // inside .inner can only ever inherit --dusk-glow if it's set on a shared
-  // ancestor. This is what lets styles.css's --onsky-ink/--onsky-coral
-  // (defined on #frame, see the "sky-legible text" block) track the same
-  // live warmth value instead of being stuck at their unset fallback.
-  if(frameEl) frameEl.style.setProperty('--dusk-glow', tod.warm);
-  /* One footprint per step already taken, laid down behind her. */
-  if(printsEl){
-    var want=Math.min(i,9);
-    while(printsEl.children.length>want) printsEl.removeChild(printsEl.lastChild);
-    while(printsEl.children.length<want){
-      var n=printsEl.children.length;
-      var f=document.createElement('i');
-      f.style.left=(24 - n*2.4)+'%';
-      f.style.setProperty('--r', ((n%2)?12:-9)+'deg');
-      f.style.opacity=String(Math.max(.08, .2 - n*0.02));
-      printsEl.appendChild(f);
-    }
-  }
-  if(walkerEl) walkerEl.classList.toggle('arrived', i>=total-1);
 }
 
 /* Animates a .donut's --p custom property from 0 up to its data-p target, in
@@ -388,62 +137,6 @@ function maybeShowSwipeHint(){
   setTimeout(cleanup, 3200); // safety net if animationend never fires
 }
 
-/* ── round 2, item 2: desktop parallax ────────────────────────────────────
-   A pointer-follow tilt on the village layers, fine-pointer/hover-capable
-   devices only (a touch device's "pointer" IS the drag gesture already
-   driving the swipe system -- layering a second, fake-hover reading of the
-   same touch on top of it would fight that, not complement it) and only
-   when reduced motion is off. rAF-throttled so a fast mousemove burst can't
-   queue more style writes than the display can paint. Composes with the
-   existing --pan pan/zoom transform by living on a different element
-   entirely: --pan drives .vlayer > svg's transform (unchanged, tuned); this
-   drives .vlayer's OWN transform (styles.css), a separate box one level up. */
-var PARALLAX_OK = !REDUCED && window.matchMedia &&
-  window.matchMedia('(hover:hover) and (pointer:fine)').matches;
-var PARALLAX_RATE = {vclouds:0.35, vfar:0.7, vmid:1.15, vnear:1.7};
-// vnear's horizontal parallax is disabled below (not just here) for a
-// specific reason: paintVillage() sizes its pan distance so vnear's own
-// right edge lands EXACTLY flush with the frame's right edge at the last
-// slide, and exactly flush left at the first -- zero slack on whichever
-// side the story is currently pinned against (that's what fixed the
-// hard-edge "hill cliff" bug earlier in this project). vfar/vmid/vclouds
-// all render comfortably wider than they need to and have real margin on
-// both sides regardless of pan position, so parallax is safe on them. vnear
-// has none: any extra horizontal nudge at either end of the story pulls its
-// edge away from the frame and opens a gap onto whatever's behind it --
-// exactly the "ground looks disconnected/missing" this is guarding against.
-// Vertical parallax has no such constraint (the pan system is purely
-// horizontal), so vnear keeps --pary and only loses --parx.
-var PARALLAX_MAX = 5; // px at the frame edge, before a layer's own rate multiplies it
-function initParallax(){
-  if(!PARALLAX_OK) return;
-  var raf=null, px=0, py=0;
-  function apply(){
-    raf=null;
-    for(var id in PARALLAX_RATE){
-      var layer=document.getElementById(id);
-      if(!layer) continue;
-      var xOff = (id==='vnear') ? 0 : px*PARALLAX_RATE[id];
-      layer.style.setProperty('--parx', xOff.toFixed(2)+'px');
-      layer.style.setProperty('--pary', (py*PARALLAX_RATE[id]).toFixed(2)+'px');
-    }
-  }
-  // Listens on #frame, not #village -- #village is pointer-events:none (it's
-  // a decorative layer sitting behind the slide deck), so it would never
-  // itself receive a pointermove to react to.
-  frameEl.addEventListener('pointermove', function(e){
-    if(e.pointerType && e.pointerType!=='mouse') return; // belt+suspenders alongside the media query above
-    var r=frameEl.getBoundingClientRect();
-    var nx=((e.clientX-r.left)/r.width)-0.5, ny=((e.clientY-r.top)/r.height)-0.5;
-    px = nx*2*PARALLAX_MAX; py = ny*2*PARALLAX_MAX;
-    if(!raf) raf=requestAnimationFrame(apply);
-  });
-  frameEl.addEventListener('pointerleave', function(){
-    px=0; py=0;
-    if(!raf) raf=requestAnimationFrame(apply);
-  });
-}
-
 function show(i){
   if(i<0) i=0;
   if(i>=S.length) i=S.length-1;
@@ -485,18 +178,13 @@ function show(i){
     }
     // Full-bleed act breaks need light frame chrome (see #frame.on-break).
     frameEl.classList.toggle('on-break', isBreak);
-    // item 5: the ONLY thing that turns the landmark SVGs' pointer-events
-    // back on (styles.css) -- see initLandmarkTaps() above for why gating it
-    // here, rather than leaving them always-tappable, matters.
-    if(villageWrap) villageWrap.classList.toggle('recap-active', i===S.length-1);
-    paintVillage(i, S.length);
     CelavilleAPI.ping(TOK, i+1, S.length);
     slideEls[i].scrollTop=0;
     Array.prototype.forEach.call(slideEls[i].querySelectorAll('[data-count]'),countUp);
     animateDonuts(slideEls[i]);
     applyScrollState(true);
     if(slideEls[i].classList.contains('v-persona')) vibrate(30);
-    if(i===S.length-1) vibrate([0,14,110,14,240,18]); // matches fireworksHTML's 0/.35/.7s burst delays
+    if(i===S.length-1) vibrate([0,14,110,14,240,18]); // little celebratory pattern for reaching the recap
     updateHistoryForSlide(i);
     announceSlide(i);
     if(i!==0){
@@ -532,9 +220,9 @@ function applyScrollState(restartTimer){
   // .btn, both opaque, so there was never a plain-text-over-ground collision
   // to fix here (unlike the platform ladder, which is bar labels and a
   // paragraph with nothing behind them). Locking it anyway flattened the
-  // dusk village that's supposed to show through as the story's last beat,
-  // which read as "why did the last page turn white" -- a regression, not a
-  // fix, since nothing here actually needed the opaque background.
+  // scene that's supposed to show through as the story's last beat, which
+  // read as "why did the last page turn white" -- a regression, not a fix,
+  // since nothing here actually needed the opaque background.
   el.classList.toggle('scroll-locked', scrolls && !el.classList.contains('recap'));
   if(scrolls){ barEls[idx].classList.remove('active'); barEls[idx].classList.add('done'); }
   if(restartTimer||scrolls){
@@ -753,7 +441,7 @@ slidesEl.addEventListener('pointercancel', function(e){
    belongs to script.google.com. On a real origin the chrome itself can
    bleed into the loader's sky gradient, then swap to parchment once the
    loader clears -- driven off the same timeout that adds #loader.gone. */
-var THEME_COLOR_SKY = '#BFE0F3', THEME_COLOR_PAPER = '#FFFCF7';
+var THEME_COLOR_PAPER = '#FFFCF7';
 function setThemeColor(hex){
   var m = document.querySelector('meta[name="theme-color"]');
   if(m) m.setAttribute('content', hex);
@@ -837,9 +525,6 @@ function boot(){
   var mock = qs.get('mock');
 
   if(loaderEl){
-    var srcImg=document.querySelector('#walker img');
-    var ldrImg=loaderEl.querySelector('.ldr-walker');
-    if(srcImg && ldrImg) ldrImg.src=srcImg.src;
     // Swallow taps on the loader itself so an eager first tap doesn't land
     // on #frame's click handler underneath and skip straight to slide two.
     loaderEl.addEventListener('click',function(e){ e.stopPropagation(); });

@@ -1,6 +1,6 @@
-// sw.js -- Celaville Wrapped service worker
+// sw.js -- Letters from the Booth service worker
 //
-// Cache-first for this site's own static assets (index/CSS/JS/fonts/walker/
+// Cache-first for this site's own static assets (index/CSS/JS/fonts/
 // og image), network-only for the Apps Script origin -- payload and progress
 // pings must never be served stale from cache, and Apps Script's own CORS
 // setup (see api.js) already assumes every request is a real network hit.
@@ -18,7 +18,7 @@
 // name forces a real install/activate cycle; the stale-while-revalidate
 // fetch handler below is the second half of the fix, for the gap between
 // deploys where a bump was forgotten.
-var CACHE_NAME = 'celaville-wrapped-v2';
+var CACHE_NAME = 'ctw-v1';
 var PRECACHE = [
   './',
   './index.html',
@@ -27,7 +27,6 @@ var PRECACHE = [
   './assets/slides.js',
   './assets/share.js',
   './assets/app.js',
-  './assets/walker.webp',
   './assets/fonts/bevan-400.woff2',
   './assets/fonts/grandstander-variable.woff2',
   './assets/fonts/montserrat-variable.woff2',
