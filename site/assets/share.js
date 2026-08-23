@@ -10,13 +10,18 @@
    the tile). Built from the same payload shape the slide deck itself reads
    -- shifts/dept/standout/team/longestDay -- so the card only ever shows
    what genuinely applies to this person. */
+/* Deliberately mirrors only what the letter itself actually showed this
+   person -- P.longestDay/earliestStart/latestEnd still exist on the
+   payload (Code.gs keeps computing them) but the deck dropped those
+   slides, so the card must not surface them either; a stat on the share
+   card that never appeared in the letter reads as a mismatch, not a
+   bonus. */
 function shareStats(){
   var out=[];
   if(P.totals) out.push({key:'shifts', label:'Shifts logged', value:(P.totals.shifts||0)+' · '+fmtHours(P.totals.minutes), color:'coral'});
   if(P.dept) out.push({key:'dept', label:'Department', value:(P.dept.label||P.dept.short||''), color: P.dept.color?null:'leaf', hex:P.dept.color});
-  if(P.standout) out.push({key:'standout', label:'Standout', value:P.standout.headline, color:'sky'});
-  if(P.longestDay && P.longestDay.date) out.push({key:'longestday', label:'Longest day', value:dateLabel(P.longestDay.date)+' · '+fmtHours(P.longestDay.minutes), color:'sage'});
-  if(P.team) out.push({key:'team', label:'The whole crew', value:(P.team.people||0)+' people · '+fmtHours(P.team.minutes), color:'yellow'});
+  if(P.standout && P.standout.headline) out.push({key:'standout', label:'Standout', value:P.standout.headline, color:'sky'});
+  if(P.team) out.push({key:'team', label:'The whole team', value:(P.team.people||0)+' people · '+fmtHours(P.team.minutes), color:'yellow'});
   return out.slice(0,4);
 }
 
@@ -57,7 +62,7 @@ function hexA_(hex,a){
    this redesign on purpose, since a stamped postmark fits a letter card
    far better than it ever fit a village postcard. */
 function drawPostmark_(x,W,H){
-  var r=30, cx=W-46-r, cy=46+r;
+  var r=26, cx=W-92-r, cy=92+r;
   x.save();
   x.fillStyle='#FBF6EC';
   var n=8;
@@ -225,7 +230,7 @@ function drawShareCard(){
   x.fillStyle='#C9493B'; x.font='800 34px Grandstander, sans-serif';
   x.fillText('Thank you for being part of this.', cx, footerCy-14);
   x.fillStyle='#4F4036'; x.font='600 28px Montserrat, sans-serif';
-  x.fillText('From the rest of the Celaville team', cx, footerCy+38);
+  x.fillText('From Arianne and Keene, your PMs', cx, footerCy+38);
 
   return c;
 }

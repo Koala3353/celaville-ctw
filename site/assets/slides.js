@@ -75,7 +75,7 @@ function vbars(rows){
     var h = max>0 ? Math.max(Math.round((r.value/max)*100),4) : 4;
     return '<div class="vbar'+(r.me?' me':'')+'">'+
       '<span class="vnum">'+r.value+'</span>'+
-      '<span class="vcol" style="--h:'+h+'%"></span>'+
+      '<div class="vtrack"><span class="vcol" style="--h:'+h+'%"></span></div>'+
       '<span class="vlab">'+esc(r.label)+'</span>'+
     '</div>';
   }).join('')+'</div>';
@@ -238,6 +238,48 @@ function shiftGrid(P){
     '<p class="shiftgrid-caption">Aug 24 to Sep 9, 2026</p>';
 }
 
+/* Splits a personal message into slide-sized chunks so the reader never has
+   to scroll a slide -- the "Personalized Messages" sheet column this comes
+   from can hold anything from one line to several paragraphs, and the
+   message slide has a fixed, non-scrolling viewport (per spec: "do not let
+   the user scroll"). Paragraph breaks (blank lines) are preferred split
+   points; a paragraph longer than maxChars on its own is further split on
+   sentence boundaries so a chunk never cuts a sentence in half. A single
+   sentence longer than maxChars is left whole rather than broken mid-word --
+   that's a rare, deliberately-tolerated overflow, not a silent truncation. */
+function splitMessageChunks(text, maxChars){
+  maxChars = maxChars || 240;
+  var paras = String(text).split(/\n\s*\n/).map(function(p){ return p.trim(); }).filter(Boolean);
+  if(!paras.length) paras = [String(text).trim()];
+
+  var chunks = [], cur = '';
+  function flush(){ if(cur){ chunks.push(cur); cur=''; } }
+  // Appends one already-fits-alone unit (a paragraph short enough to stand
+  // on its own, or one sentence of a paragraph that wasn't), joining it
+  // onto the in-progress chunk when there's room or starting a fresh one
+  // when there isn't. This is the one place text actually gets added to a
+  // chunk -- both branches below route through it, so a paragraph that
+  // needed sentence-splitting is subject to the exact same fits/doesn't-fit
+  // decision as one that didn't, regardless of what's already in `cur`.
+  function addUnit(unit, sep){
+    if(!cur){ cur = unit; }
+    else if((cur+sep+unit).length<=maxChars){ cur += sep+unit; }
+    else { flush(); cur = unit; }
+  }
+
+  paras.forEach(function(para){
+    if(para.length<=maxChars){
+      addUnit(para, '\n\n');
+    } else {
+      var sentences = (para.match(/[^.!?]+[.!?]+(\s+|$)|[^.!?]+$/g) || [para])
+        .map(function(s){ return s.trim(); }).filter(Boolean);
+      sentences.forEach(function(s){ addUnit(s, ' '); });
+    }
+  });
+  flush();
+  return chunks;
+}
+
 /* ── slide builders ──────────────────────────────────────── */
 
 var S=[];
@@ -281,11 +323,21 @@ if(P.personal && (P.personal.yearLevel || P.personal.course || (P.personal.birth
   else if(per.course) yearCourse = esc(per.course);
   else if(per.yearLevel) yearCourse = ordinal(per.yearLevel)+' Year';
 
+  var yearShareBlock='';
+  if(per.birthYearShare && per.birthYearShare.count>0){
+    var ys=per.birthYearShare;
+    yearShareBlock = pictoRow(
+      ys.pct+'% of the team was born in '+ys.year+'.',
+      ys.count+' of '+ys.n,
+      ys.pct, ys.count, 'peach');
+  }
+
   add(6500,
     marginalia('cake','about-marg')+
     '<p class="kicker">A few things about you</p>'+
     (yearCourse ? '<h2>'+yearCourse+'</h2>' : '')+
     (per.birthdayMonthDay ? '<p class="letter-lede">Born '+esc(per.birthdayMonthDay)+(per.birthYear?', '+per.birthYear:'')+'.</p>' : '')+
+    yearShareBlock+
     '<p class="sm">Celaville pulled together people at every year level and every course. You were one of them.</p>');
 }
 
@@ -334,9 +386,12 @@ if(P.totals){
 
   var roleBlock='';
   if(roles.length>1){
-    roleBlock = '<div class="chart">'+roles.map(function(r){
-      return chartRow(esc(r.role), r.shifts+' '+plural(r.shifts,'shift'), r.pct, 'sky');
-    }).join('')+'</div>';
+    // Vertical bars here, not the horizontal chartRow the event split above
+    // just used -- two chart forms back to back in one slide would read as
+    // one long list of identical bars.
+    roleBlock = '<p class="role-label">By role</p>'+vbars(roles.map(function(r){
+      return {label:esc(r.role), value:r.shifts};
+    }));
   } else if(roles.length===1){
     roleBlock = '<p class="sm">You worked as '+esc(roles[0].role)+' throughout.</p>';
   }
@@ -355,13 +410,19 @@ if(P.totals){
    picks whichever is rarest) -- so someone with only a shift or two still
    gets something specific and true about them here, not just a shift
    count restated. */
-if(P.standout){
+if(P.standout && P.standout.headline){
   var st=P.standout;
+  // A pictogram here, not the gauge/ring the department slide uses just
+  // after this one -- "N of the team share this with you" is a proportion
+  // of people, which a dot grid reads more plainly than a ring does; the
+  // department slide's stat (your individual share of its total hours) is
+  // a single ratio, where a ring is the right call. Different data shapes,
+  // different chart.
   add(7000,
     '<p class="kicker">One thing that’s true about you</p>'+
     '<h2>'+esc(st.headline)+'</h2>'+
-    (st.sub ? '<p class="letter-lede">'+esc(st.sub)+'</p>' : '')+
-    (st.count && st.n ? gauge(Math.round((st.count/st.n)*100), st.count+' of '+st.n, 'across the whole team') : '')+
+    (st.count && st.n ? pictoRow(st.sub?esc(st.sub):'', st.count+' of '+st.n, Math.round((st.count/st.n)*100), st.count, 'sky')
+      : (st.sub ? '<p class="letter-lede">'+esc(st.sub)+'</p>' : ''))+
     '<p class="sm">That’s measured against the full team, not just your department.</p>');
 }
 
@@ -395,20 +456,42 @@ if(P.team){
     '<p class="sm">Forty-two-ish people chose to show up for this. This is what that looked like, added up.</p>');
 }
 
-/* 9 -- the personal message. Always renders; an empty message gets a warm
-   fallback line rather than a gap. Longest duration in the deck -- this is
-   the emotional centerpiece, per spec. */
+/* 9 -- the personal message, pulled from the roster sheet's "Personalized
+   Messages" column. Always renders at least one slide; an empty message
+   gets a warm fallback line rather than a gap. Longest duration of any
+   single-chunk slide in the deck -- this is the emotional centerpiece, per
+   spec.
+   That column can hold anything from one line to several paragraphs, and
+   the deck's slides don't scroll -- so a message longer than
+   splitMessageChunks' per-slide budget becomes several consecutive
+   "note" slides instead of one overflowing one. Only the LAST chunk signs
+   off; earlier chunks are marked as continuing rather than repeating the
+   sign-off, which would read as several different people writing one
+   note. */
 (function(){
   var nick = esc(P.nickname || P.firstName || P.name);
   var hasMessage = !!(P.message && String(P.message).trim());
-  add(11000,
-    marginalia('lantern','msg-marg')+
-    '<p class="kicker">A note, just for you</p>'+
-    (hasMessage
-      ? '<blockquote class="letter-message">'+esc(P.message).replace(/\n+/g,'</p><p>')+'</blockquote>'
-      : '<p class="letter-message">'+nick+', we haven’t written your note yet. This page is ready for it whenever we do. Thank you for everything in the meantime.</p>')+
-    '<p class="letter-signoff">From the rest of the Celaville team.</p>',
-    'v-persona');
+  var SIGNOFF = '<p class="letter-signoff">From Arianne and Keene, your PMs.</p>';
+
+  if(hasMessage){
+    var chunks = splitMessageChunks(P.message, 240);
+    chunks.forEach(function(chunk, i){
+      var isFirst = i===0, isLast = i===chunks.length-1;
+      add(isLast ? 11000 : 6500,
+        (isFirst ? marginalia('lantern','msg-marg') : '')+
+        '<p class="kicker">'+(isFirst?'A note, just for you':'The note continues')+'</p>'+
+        '<blockquote class="letter-message">'+esc(chunk).replace(/\n\n+/g,'</p><p>')+'</blockquote>'+
+        (isLast ? SIGNOFF : ''),
+        'v-persona');
+    });
+  } else {
+    add(11000,
+      marginalia('lantern','msg-marg')+
+      '<p class="kicker">A note, just for you</p>'+
+      '<p class="letter-message">'+nick+', we haven’t written your note yet. This page is ready for it whenever we do. Thank you for everything in the meantime.</p>'+
+      SIGNOFF,
+      'v-persona');
+  }
 })();
 
 /* 10 -- thank you + share card. Always renders. */
