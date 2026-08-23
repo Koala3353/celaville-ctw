@@ -12,6 +12,12 @@
   "position": "Docpub Core",
   "isFaculty": false,
   "isHead": false,
+  "personal": {
+    "yearLevel": 4,
+    "course": "BS BIO",
+    "birthdayMonthDay": "April 18",
+    "birthYear": 2006
+  },
   "totals": {
     "shifts": 5,
     "minutes": 400,
@@ -93,10 +99,10 @@
     }
   ],
   "standout": {
-    "kind": "most_days",
-    "headline": "You showed up on more different days than almost anyone",
-    "sub": "13 of 42 worked 3 day(s).",
-    "count": 13,
+    "kind": "birth_month",
+    "headline": "You’re one of only 4 people born in April",
+    "sub": "4 of 42 share your birth month.",
+    "count": 4,
     "n": 42
   },
   "deptStats": {

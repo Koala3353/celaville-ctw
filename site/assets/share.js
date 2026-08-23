@@ -74,7 +74,7 @@ function drawPostmark_(x,W,H){
 }
 
 /* One small ink-line glyph per stat category -- this project's own
-   iconography (a ticket stub, a little booth roof, a sparkle, a sun-over-
+   iconography (a ticket stub, a small roofline, a sparkle, a sun-over-
    clock, a cluster of people) rather than the old village persona icons.
    Unrecognized/future keys fall through to a plain diamond. */
 function drawStatIcon_(x,key,cx,cy,r,fill,ink){
@@ -223,9 +223,9 @@ function drawShareCard(){
   x.strokeStyle='#4F4036'; x.lineWidth=2.6; x.stroke();
   x.textAlign='center';
   x.fillStyle='#C9493B'; x.font='800 34px Grandstander, sans-serif';
-  x.fillText('Thank you for running the booth.', cx, footerCy-14);
+  x.fillText('Thank you for being part of this.', cx, footerCy-14);
   x.fillStyle='#4F4036'; x.font='600 28px Montserrat, sans-serif';
-  x.fillText('— the rest of the crew', cx, footerCy+38);
+  x.fillText('From the rest of the Celaville team', cx, footerCy+38);
 
   return c;
 }

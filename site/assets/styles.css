@@ -127,6 +127,23 @@ body{
   stroke:var(--ink-soft);fill:none;
 }
 
+/* ── background clouds ────────────────────────────────────────────────────
+   From the brand book's cloud motif -- two faint shapes drifting behind the
+   letter's content, never in front of it. Decorative only: no interaction,
+   no reduced-motion concern (the drift is slow and small). */
+.bg-cloud{
+  position:absolute;z-index:0;width:120px;height:auto;opacity:.35;
+  pointer-events:none;animation:bg-cloud-drift 46s linear infinite;
+}
+.bg-cloud-a{top:9%;left:-10%}
+.bg-cloud-b{top:58%;right:-14%;width:92px;opacity:.28;animation-duration:58s;animation-direction:reverse}
+@keyframes bg-cloud-drift{
+  0%{transform:translateX(0)}
+  50%{transform:translateX(18px)}
+  100%{transform:translateX(0)}
+}
+@media(prefers-reduced-motion:reduce){ .bg-cloud{animation:none} }
+
 /* ── progress ─────────────────────────────────────────────── */
 /* Each slide is a small ticket-perforation dash rather than a bar -- the
    filled ones read as "already read" pages of the letter. */
@@ -219,8 +236,8 @@ p{font-size:17px;line-height:1.6;margin:0 0 14px;color:var(--ink);opacity:.85}
    like clipart. `color:currentColor` picks up --ink from wherever it's
    placed; the one filled accent inside each always reads --ctw-coral. */
 .marg{color:var(--ink-strong);display:block;margin:0 0 10px -2px;opacity:.9}
-.cover-stamp{position:absolute;top:18px;right:22px;width:52px;height:auto;transform:rotate(4deg)}
-.msg-marg,.thanks-marg{margin-bottom:12px}
+.cover-stamp{position:absolute;top:18px;left:22px;width:48px;height:auto;transform:rotate(-6deg)}
+.msg-marg,.thanks-marg,.about-marg{margin-bottom:12px}
 .deptbadge-marg{width:28px;height:24px;flex:none;color:var(--ink-strong)}
 
 /* department badge -- a small ribbon tab, coloured from the payload's own
