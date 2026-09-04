@@ -1,9 +1,10 @@
 // sw.js -- Letters from the Booth service worker
 //
-// Cache-first for this site's own static assets (index/CSS/JS/fonts/
-// og image), network-only for the Apps Script origin -- payload and progress
-// pings must never be served stale from cache, and Apps Script's own CORS
-// setup (see api.js) already assumes every request is a real network hit.
+// Stale-while-revalidate for this site's own static assets (index/CSS/JS/
+// fonts/og image) -- a cached copy answers instantly, network-only for the
+// Apps Script origin -- payload and progress pings must never be served
+// stale from cache, and Apps Script's own CORS setup (see api.js) already
+// assumes every request is a real network hit.
 //
 // Pairs with the localStorage payload cache in api.js: this makes the SHELL
 // (markup/styles/scripts/fonts) load instantly and work offline on a repeat
@@ -18,7 +19,7 @@
 // name forces a real install/activate cycle; the stale-while-revalidate
 // fetch handler below is the second half of the fix, for the gap between
 // deploys where a bump was forgotten.
-var CACHE_NAME = 'ctw-v1';
+var CACHE_NAME = 'ctw-v2';
 var PRECACHE = [
   './',
   './index.html',

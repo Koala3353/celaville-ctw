@@ -335,8 +335,6 @@ if(P.impact){
     '<p class="letter-lede">'+im.attendees+' came through the doors across '+im.attendeeDays+' event days. '+
       im.gamePlayers+' jumped into the mini-games for '+im.gamesPlayed+' games in all, and '+im.tourneyPlayers+
       ' more filled out '+im.tourneyTeams+' tournament teams.</p>'+
-    '<p class="sm">'+im.applicants+' people applied to be part of this. '+im.accepted+' of them made it into the group, and '+
-      im.paymentVerified+' made it all the way to being official members.</p>'+
     '<p class="sm">'+im.futureInterested+' of '+im.futureSurveyed+' people we surveyed said they now want to join a future Core Team, because of what they saw this year.</p>'+
     '<p class="sm">You helped make every one of those numbers real, and that’s yours to be proud of.</p>');
 }
