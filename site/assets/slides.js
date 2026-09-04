@@ -8,49 +8,35 @@
 // the module-level S[] array of {dur, html, cls} via add(); app.js's
 // buildDom() wraps each entry's html in a <section class="slide ..."><div
 // class="inner">...</div></section>, animates [data-count] elements with
-// countUp() (defined at the bottom of this file) and .donut[data-p]
-// elements with animateDonuts() (app.js), and fires bar-chart/ladder-bar/
-// vbar width|height transitions off the `.slide.on` class. None of that
-// wiring is touched here -- only the markup/copy running through it.
+// countUp() (defined at the bottom of this file), and fires the meter's
+// width transition off the `.slide.on` class (a plain [style="--w:N%"] +
+// CSS-transition pattern -- no per-chart JS driver, unlike the old conic-
+// gradient .donut/animateDonuts() this replaced). A `cls` of 'v-break' also
+// gets light frame chrome via #frame.on-break (app.js), for a full-bleed
+// slide. None of that wiring is touched here -- only the markup/copy
+// running through it.
 
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 function plural(n,a,b){return n===1?a:(b||a+'s');}
 
-/* ── chart builders (generic, reused from the pre-redesign deck; the visual
-   skin lives entirely in styles.css, none of this markup shape changed) ── */
+/* ── chart builders (meter is new for the bolder-color pass; the visual
+   skin lives entirely in styles.css, this only builds markup) ── */
 
-function chartRow(label,valText,pct,cls){
-  var w=Math.max(Number(pct)||0,2);
-  return '<div class="chart-row">'+
-    '<div class="chart-head"><span class="chart-label">'+label+'</span>'+
-    (valText?'<span class="chart-val">'+valText+'</span>':'')+'</div>'+
-    '<div class="chart-track"><i class="chart-fill'+(cls?' '+cls:'')+'" style="--w:'+w+'%"></i></div>'+
-  '</div>';
-}
-
-function donut(part,whole,headline,caption,cls){
-  var pct = whole>0 ? Math.round((part/whole)*100) : 0;
-  return '<div class="donutwrap">'+
-    '<div class="donut'+(cls?' '+cls:'')+'" data-p="'+pct+'" style="--p:'+pct+'">'+
-      '<span class="mid"><b>'+part+'</b><s>of '+whole+'</s></span>'+
-    '</div>'+
-    '<div class="donutside">'+
-      '<div class="big-n">'+headline+'</div>'+
-      (caption?'<div class="cap">'+caption+'</div>':'')+
-    '</div></div>';
-}
-
-function gauge(pct,headline,caption,cls){
+/* A bold horizontal meter -- replaces the old conic-gradient ring (`donut`/
+   `gauge`, both removed). A single ratio against a limit is a meter's job,
+   not a 2-slice pie -- the ring version also buried its number in 23px text
+   inside a thin track, which read as small and unclear at a glance. This
+   puts the number at 28px next to the label, and the track itself is thick
+   enough to read as a deliberate bar rather than a decorative circle. */
+function meter(pct,headline,caption,cls){
   pct = Math.max(0,Math.min(100,Math.round(Number(pct)||0)));
-  return '<div class="donutwrap">'+
-    '<div class="donut'+(cls?' '+cls:'')+'" data-p="'+pct+'" style="--p:'+pct+'">'+
-      '<span class="mid"><b>'+pct+'</b><s>%</s></span>'+
-    '</div>'+
-    '<div class="donutside">'+
-      '<div class="big-n">'+headline+'</div>'+
-      (caption?'<div class="cap">'+caption+'</div>':'')+
-    '</div></div>';
+  return '<div class="meterwrap">'+
+    '<div class="meter-head"><span class="meter-label">'+headline+'</span>'+
+      '<span class="meter-pct'+(cls?' '+cls:'')+'">'+pct+'%</span></div>'+
+    '<div class="meter-track"><i class="meter-fill'+(cls?' '+cls:'')+'" style="--w:'+pct+'%"></i></div>'+
+    (caption?'<p class="meter-cap">'+caption+'</p>':'')+
+  '</div>';
 }
 
 function pictoRow(sentence,frac,pct,count,cls){
@@ -69,52 +55,6 @@ function pictoRow(sentence,frac,pct,count,cls){
   '</div>';
 }
 
-function vbars(rows){
-  var max=0; rows.forEach(function(r){ if(r.value>max) max=r.value; });
-  return '<div class="vbars">'+rows.map(function(r){
-    var h = max>0 ? Math.max(Math.round((r.value/max)*100),4) : 4;
-    return '<div class="vbar'+(r.me?' me':'')+'">'+
-      '<span class="vnum">'+r.value+'</span>'+
-      '<div class="vtrack"><span class="vcol" style="--h:'+h+'%"></span></div>'+
-      '<span class="vlab">'+esc(r.label)+'</span>'+
-    '</div>';
-  }).join('')+'</div>';
-}
-
-function lineChart(pts){
-  if(!pts || pts.length<2) return '';
-  var maxY=0; pts.forEach(function(p){ if(p.y>maxY) maxY=p.y; });
-  if(maxY<=0) maxY=1;
-  var n=pts.length;
-  var xy=pts.map(function(p,i){
-    return { x:(i/(n-1))*100, y:100-((p.y/maxY)*88)-6 };
-  });
-  var line=xy.map(function(p,i){ return (i?'L':'M')+p.x.toFixed(2)+' '+p.y.toFixed(2); }).join(' ');
-  var area=line+' L100 100 L0 100 Z';
-  var dots=xy.map(function(p){
-    return '<i class="ldot" style="left:'+p.x.toFixed(2)+'%;top:'+p.y.toFixed(2)+'%"></i>';
-  }).join('');
-  return '<div class="linewrap">'+
-    '<div class="lineplot">'+
-      '<svg class="linechart" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'+
-        '<line class="grid" x1="0" y1="50" x2="100" y2="50"/>'+
-        '<path class="area" d="'+area+'"/>'+
-        '<path class="ln" d="'+line+'"/>'+
-      '</svg>'+dots+
-    '</div>'+
-    '<div class="lineaxis"><span>'+esc(pts[0].x)+'</span><span>'+esc(pts[n-1].x)+'</span></div>'+
-  '</div>';
-}
-
-function chartPair(label,youText,youPct,batchText,batchPct){
-  return '<div class="chart-row">'+
-    '<div class="chart-head"><span class="chart-label">'+label+'</span>'+
-    '<span class="chart-val">'+youText+'</span></div>'+
-    '<div class="chart-track"><i class="chart-fill" style="--w:'+Math.max(Number(youPct)||0,2)+'%"></i></div>'+
-    '<div class="chart-track thin"><i class="chart-fill ghost" style="--w:'+Math.max(Number(batchPct)||0,2)+'%"></i></div>'+
-    '<div class="chart-sub">'+batchText+'</div>'+
-  '</div>';
-}
 
 /* ── marginalia: small hand-drawn-style doodles in the letter's margins.
    Plain inline SVG, ink-stroke only (no fill besides the two accent colors),
@@ -271,9 +211,18 @@ function splitMessageChunks(text, maxChars){
     if(para.length<=maxChars){
       addUnit(para, '\n\n');
     } else {
+      // A paragraph long enough to need splitting still STARTS a new
+      // paragraph relative to whatever's already in `cur` -- only the
+      // sentences after the first are continuations of it. Joining that
+      // first sentence with ' ' (as if it were mid-paragraph) is exactly
+      // what was silently erasing the paragraph break the previous
+      // paragraph earned: the real symptom was two full paragraphs
+      // (typed as separate blocks, blank line between them) rendering as
+      // one run-on paragraph the moment the second one was long enough to
+      // need sentence-splitting.
       var sentences = (para.match(/[^.!?]+[.!?]+(\s+|$)|[^.!?]+$/g) || [para])
         .map(function(s){ return s.trim(); }).filter(Boolean);
-      sentences.forEach(function(s){ addUnit(s, ' '); });
+      sentences.forEach(function(s, i){ addUnit(s, i===0 ? '\n\n' : ' '); });
     }
   });
   flush();
@@ -296,7 +245,7 @@ add(6000,
   '<p class="kicker">RecWeek &amp; Welcome Week <span class="cn">&middot;</span> Aug 24 &ndash; Sep 9, 2026</p>'+
   '<h1>A thank-you letter,<br>for the Celaville team.</h1>'+
   '<h2>Hi '+esc(P.nickname||P.firstName||P.name)+'.</h2>'+
-  '<p>You were one of about 42 people who put Celaville together this year. This is what your part of it looked like.</p>'+
+  '<p>You were one of about 42 people who made Celaville happen this year. Here’s your part of it.</p>'+
   '<p class="sm">Every number here comes from your own sign-ups and shifts.</p>');
 
 /* 2 -- your name in the credits */
@@ -308,8 +257,8 @@ add(6000,
     (P.dept ? deptBadge(P.dept) : '')+
     (P.position ? '<p class="role-line">'+esc(P.position)+(P.isHead?' <span class="hl">&middot; team lead</span>':'')+'</p>' : '')+
     '<p class="sm">'+(faculty
-      ? 'You didn’t have to show up for this one. You did anyway, and the team noticed.'
-      : 'Your name was on the schedule, and you showed up for it.')+'</p>',
+      ? 'You didn’t have to show up for this one. You did anyway, and the whole team noticed.'
+      : 'You signed up, and you showed up. That’s the whole job, and you nailed it.')+'</p>',
     'v-persona');
 })();
 
@@ -338,14 +287,14 @@ if(P.personal && (P.personal.yearLevel || P.personal.course || (P.personal.birth
     (yearCourse ? '<h2>'+yearCourse+'</h2>' : '')+
     (per.birthdayMonthDay ? '<p class="letter-lede">Born '+esc(per.birthdayMonthDay)+(per.birthYear?', '+per.birthYear:'')+'.</p>' : '')+
     yearShareBlock+
-    '<p class="sm">Celaville pulled together people at every year level and every course. You were one of them.</p>');
+    '<p class="sm">Celaville pulled together people at every year level and every course, and you were right in the mix.</p>');
 }
 
 /* 4 -- what you gave: total shifts, hours, days present, and the shift-
-   window calendar, merged into a single slide. This and slide 5 are the
-   only two slides built from shift data -- everything else on the schedule
-   (which exact day ran longest, first clock-in vs last clock-out) got cut
-   so the letter doesn't turn into a timesheet. The closing line holds
+   window calendar. The RecWeek/Welcome Week split and role breakdown that
+   used to live here (folded in from the old standalone "how it broke down"
+   slide) were cut again on request -- back to just the shift-count facts,
+   nothing that reads as a schedule report. The closing line holds
    regardless of whether the count is 1 or 14; there's no "you should have
    done more" reading available here. */
 if(P.totals){
@@ -356,56 +305,55 @@ if(P.totals){
     '<p class="letter-lede">'+esc(fmtHours(P.totals.minutes))+' on the ground'+(P.totals.days?', over '+P.totals.days+' '+plural(P.totals.days,'day'):'')+'.</p>'+
     (P.totals.days ? shiftGrid(P) : '')+
     '<p class="sm">'+
-      (P.totals.firstDate ? 'First one on '+esc(dateLabel(P.totals.firstDate))+'. ' : '')+
-      (P.totals.lastDate && P.totals.lastDate!==P.totals.firstDate ? 'Last one on '+esc(dateLabel(P.totals.lastDate))+'.' : '')+
+      (P.totals.firstDate ? 'You started on '+esc(dateLabel(P.totals.firstDate))+'. ' : '')+
+      (P.totals.lastDate && P.totals.lastDate!==P.totals.firstDate ? 'Still showing up by '+esc(dateLabel(P.totals.lastDate))+'.' : '')+
     '</p>'+
-    '<p class="sm">Thank you for choosing to be there.</p>');
+    '<p class="sm">Thank you for choosing to be there!</p>');
 }
 
-/* 5 -- how it broke down: RecWeek/Welcome Week split plus role breakdown,
-   condensed into one slide. Each half falls back to a plain sentence
-   instead of a chart when there's only one event or one role to show --
-   a two-bar comparison chart with one bar at zero reads as thin data
-   apologizing for itself, so it's replaced rather than shown half-empty. */
-(function(){
-  var rw=(P.byEvent&&P.byEvent.RECWEEK)||{shifts:0,minutes:0};
-  var ww=(P.byEvent&&P.byEvent.WELCOMEWEEK)||{shifts:0,minutes:0};
-  var bothEvents = rw.shifts>0 && ww.shifts>0;
-  var oneEvent = (rw.shifts>0) !== (ww.shifts>0);
-  var roles = P.byRole||[];
+/* 4.5 -- zoom out to the project itself, right after the personal shift
+   count. This is the direct counterweight to slide 4: a "what you gave"
+   number can look small in isolation, especially for someone who only took
+   a shift or two, so before anything comparative shows up (department
+   share, team totals) this slide answers "and what did that feed into."
+   Every number here is org-wide and identical for all 42 of you -- it isn't
+   trying to rank or compare anyone, just to show the thing your shift was
+   actually part of. Guarded on P.impact existing so an older cached payload
+   (frozen before this slide existed) just skips it instead of rendering a
+   broken half-slide. */
+if(P.impact){
+  var im = P.impact;
+  add(8000,
+    marginalia('stamp','impact-marg')+
+    '<p class="kicker">Bigger than one shift</p>'+
+    '<h2>Here’s what your shift helped make happen</h2>'+
+    '<div class="statgrid">'+
+      '<div class="statbox"><div class="n">'+im.applicants+'</div><div class="k">People applied</div></div>'+
+      '<div class="statbox"><div class="n">'+im.attendees+'</div><div class="k">People showed up</div></div>'+
+      '<div class="statbox"><div class="n">'+im.gamePlayers+'</div><div class="k">People played</div></div>'+
+    '</div>'+
+    '<p class="letter-lede">'+im.attendees+' came through the doors across '+im.attendeeDays+' event days. '+
+      im.gamePlayers+' jumped into the mini-games for '+im.gamesPlayed+' games in all, and '+im.tourneyPlayers+
+      ' more filled out '+im.tourneyTeams+' tournament teams.</p>'+
+    '<p class="sm">'+im.applicants+' people applied to be part of this. '+im.accepted+' of them made it into the group, and '+
+      im.paymentVerified+' made it all the way to being official members.</p>'+
+    '<p class="sm">'+im.futureInterested+' of '+im.futureSurveyed+' people we surveyed said they now want to join a future Core Team, because of what they saw this year.</p>'+
+    '<p class="sm">You helped make every one of those numbers real, and that’s yours to be proud of.</p>');
+}
 
-  var eventBlock='';
-  if(bothEvents){
-    eventBlock = '<div class="chart">'+
-      chartRow('RecWeek', rw.shifts+' '+plural(rw.shifts,'shift')+' &middot; '+fmtHours(rw.minutes), rw.shifts/(rw.shifts+ww.shifts)*100)+
-      chartRow('Welcome Week', ww.shifts+' '+plural(ww.shifts,'shift')+' &middot; '+fmtHours(ww.minutes), ww.shifts/(rw.shifts+ww.shifts)*100, 'leaf')+
-    '</div>';
-  } else if(oneEvent){
-    eventBlock = '<p class="letter-lede">All of it was during '+(rw.shifts>0?'RecWeek':'Welcome Week')+'.</p>';
-  }
+/* 4.7 -- a pure breather, no data at all: right after two stat-heavy slides
+   in a row (what-you-gave, the impact numbers) and before three more coming
+   up (standout, department, team), the deck needed one beat that's just
+   feeling, not another card of numbers. Uses the 'v-break' class app.js
+   already had wired up for a full-bleed treatment (frameEl.on-break) but
+   never actually used -- see styles.css for the color treatment. Always
+   renders; nothing here depends on the payload. */
+add(5000,
+  '<h2>Celaville was loud, colorful, and a little chaotic.</h2>'+
+  '<p class="letter-lede">So were you. That’s not a bad thing. That’s the whole point.</p>',
+  'v-break');
 
-  var roleBlock='';
-  if(roles.length>1){
-    // Vertical bars here, not the horizontal chartRow the event split above
-    // just used -- two chart forms back to back in one slide would read as
-    // one long list of identical bars.
-    roleBlock = '<p class="role-label">By role</p>'+vbars(roles.map(function(r){
-      return {label:esc(r.role), value:r.shifts};
-    }));
-  } else if(roles.length===1){
-    roleBlock = '<p class="sm">You worked as '+esc(roles[0].role)+' throughout.</p>';
-  }
-
-  if(eventBlock || roleBlock){
-    add(7500,
-      '<p class="kicker">How it broke down</p>'+
-      '<h2>Two weeks, one you</h2>'+
-      eventBlock+roleBlock+
-      '<p class="sm">This is your own split, not a comparison against anyone else.</p>');
-  }
-})();
-
-/* 6 -- you're one of N. The standout fact can come from shift history, but
+/* 5 -- you're one of N. The standout fact can come from shift history, but
    just as often from year level, course, or department overlap (Code.gs
    picks whichever is rarest) -- so someone with only a shift or two still
    gets something specific and true about them here, not just a shift
@@ -419,28 +367,40 @@ if(P.standout && P.standout.headline){
   // a single ratio, where a ring is the right call. Different data shapes,
   // different chart.
   add(7000,
-    '<p class="kicker">One thing that’s true about you</p>'+
+    '<p class="kicker">One fun fact about you</p>'+
     '<h2>'+esc(st.headline)+'</h2>'+
     (st.count && st.n ? pictoRow(st.sub?esc(st.sub):'', st.count+' of '+st.n, Math.round((st.count/st.n)*100), st.count, 'sky')
       : (st.sub ? '<p class="letter-lede">'+esc(st.sub)+'</p>' : ''))+
-    '<p class="sm">That’s measured against the full team, not just your department.</p>');
+    '<p class="sm">And that’s true across the whole team, not just your department.</p>');
 }
 
-/* 7 -- your department */
+/* 6 -- your department. The card's background is tinted from the payload's
+   own dept.color (same color-mix formula deptBadge already uses) instead of
+   the plain cream every other card gets -- one section of the deck gets to
+   carry the department's actual color, not just a border line of it. */
 if(P.deptStats && P.dept){
   var ds=P.deptStats;
+  var deptColor=esc(P.dept.color||'#4F4036');
   add(8000,
     '<p class="kicker">Your department</p>'+
     '<h2>'+esc(P.dept.label||P.dept.short||'Your team')+'</h2>'+
-    '<div class="card" style="border-color:'+esc(P.dept.color||'')+'">'+
+    '<div class="card" style="border-color:'+deptColor+';background:linear-gradient(165deg, color-mix(in srgb, '+deptColor+' 14%, var(--paper-hi)), color-mix(in srgb, '+deptColor+' 6%, var(--paper)))">'+
       '<p class="sm" style="margin:0">'+ds.headcount+' '+plural(ds.headcount,'person','people')+', '+
-      ds.shifts+' '+plural(ds.shifts,'shift')+' logged together, '+esc(fmtHours(ds.minutes))+' on the ground as a team.</p>'+
+      ds.shifts+' '+plural(ds.shifts,'shift')+' put in together, '+esc(fmtHours(ds.minutes))+' on the ground as a team.</p>'+
     '</div>'+
-    (ds.yourSharePct ? gauge(ds.yourSharePct, 'Your share', 'of the department’s total hours', 'leaf') : '')+
-    '<p class="sm">That’s the department you were part of this year.</p>');
+    // A ring gauge reads fine when it's mostly full, but a ring that's
+    // mostly empty reads as "here's how little of this was you" -- exactly
+    // the apologizing-for-thin-data problem the earlier split-bar routes
+    // around for its own chart. Below this floor, the plain sentence
+    // carries the same information (you were part of a department, not the
+    // whole of it) without a visual that does the opposite of what a
+    // thank-you is for. The floor is arbitrary but generous: even a fifth
+    // of a department's hours is a real share, not a rounding error.
+    (ds.yourSharePct>=15 ? meter(ds.yourSharePct, 'Your share', 'of the department’s total hours', 'leaf') : '')+
+    '<p class="sm">That’s your department, and what a year to be part of it.</p>');
 }
 
-/* 8 -- the whole team, in one number. Always renders. */
+/* 7 -- the whole team, in one number. Always renders. */
 if(P.team){
   var tm=P.team;
   add(8500,
@@ -451,12 +411,16 @@ if(P.team){
       '<div class="statbox"><div class="n">'+(tm.shifts||0)+'</div><div class="k">Shifts</div></div>'+
       '<div class="statbox"><div class="n">'+esc(fmtHours(tm.minutes))+'</div><div class="k">Hours</div></div>'+
     '</div>'+
+    // Deliberately not "...from each of you, on average" -- an average
+    // stated right next to someone's own (possibly much smaller) number
+    // invites them to do the subtraction themselves. This states the same
+    // total without handing anyone that comparison.
     '<p class="letter-lede">Across '+(tm.days||0)+' '+plural(tm.days||0,'day')+' and '+(tm.events||0)+' '+plural(tm.events||0,'event')+
-      ', that’s roughly '+esc(fmtHours(tm.avgMinutes))+' from each of you, on average.</p>'+
-    '<p class="sm">Forty-two-ish people chose to show up for this. This is what that looked like, added up.</p>');
+      ', that’s what '+(tm.people||0)+' of you built together.</p>'+
+    '<p class="sm">Forty-two-ish people chose to show up for this. Here’s what that adds up to.</p>');
 }
 
-/* 9 -- the personal message, pulled from the roster sheet's "Personalized
+/* 8 -- the personal message, pulled from the roster sheet's "Personalized
    Messages" column. Always renders at least one slide; an empty message
    gets a warm fallback line rather than a gap. Longest duration of any
    single-chunk slide in the deck -- this is the emotional centerpiece, per
@@ -480,7 +444,12 @@ if(P.team){
       add(isLast ? 11000 : 6500,
         (isFirst ? marginalia('lantern','msg-marg') : '')+
         '<p class="kicker">'+(isFirst?'A note, just for you':'The note continues')+'</p>'+
-        '<blockquote class="letter-message">'+esc(chunk).replace(/\n\n+/g,'</p><p>')+'</blockquote>'+
+        // Two passes, in this order: a blank line between paragraphs becomes
+        // a real paragraph break first, then whatever single `\n`s are left
+        // -- a soft line break someone typed inside one paragraph, not a
+        // new paragraph -- become <br>s. Reversed, the single-\n pass would
+        // also fire on the doubled newlines just consumed by the first one.
+        '<blockquote class="letter-message">'+esc(chunk).replace(/\n\n+/g,'</p><p>').replace(/\n/g,'<br>')+'</blockquote>'+
         (isLast ? SIGNOFF : ''),
         'v-persona');
     });
@@ -488,13 +457,13 @@ if(P.team){
     add(11000,
       marginalia('lantern','msg-marg')+
       '<p class="kicker">A note, just for you</p>'+
-      '<p class="letter-message">'+nick+', we haven’t written your note yet. This page is ready for it whenever we do. Thank you for everything in the meantime.</p>'+
+      '<p class="letter-message">'+nick+', we haven’t written your note yet, but this page will be ready the moment we do. Thank you for everything in the meantime.</p>'+
       SIGNOFF,
       'v-persona');
   }
 })();
 
-/* 10 -- thank you + share card. Always renders. */
+/* 9 -- thank you + share card. Always renders. */
 (function(){
   var recap=[];
   if(P.totals) recap.push(['Shifts', (P.totals.shifts||0)+' &middot; '+esc(fmtHours(P.totals.minutes))]);
@@ -505,7 +474,7 @@ if(P.team){
   add(0,
     marginalia('ayi','thanks-marg')+
     '<p class="kicker">Thank you, from all of us</p>'+
-    '<h2>Thank you for being part of Celaville this year, '+esc(P.nickname||P.firstName||P.name)+'.</h2>'+
+    '<h2>Thank you for being part of Celaville this year, '+esc(P.nickname||P.firstName||P.name)+'!</h2>'+
     '<div style="margin-bottom:14px">'+
       recap.map(function(x){
         return '<div class="card" style="padding:10px 14px;margin-bottom:7px"><div class="row">'+

@@ -2,16 +2,20 @@
    CELAVILLE CTW -- "Letters from the Booth" design system
    A keepsake thank-you letter for the ~42-person core team that ran
    RecWeek + Welcome Week. Cream paper, deckled edges, celadon ink body
-   copy, coral stamp/CTA accent, hand-drawn marginalia doodles, a postmark
-   medallion in the corner. Warm and intimate -- this is 42 people who all
-   know each other, not a mass broadcast, so nothing here is loud.
+   copy, hand-drawn marginalia doodles, a postmark medallion in the corner --
+   still warm and intimate (this is 42 people who all know each other, not
+   a mass broadcast), but pushed bolder on a second pass: the brand accents
+   (coral/leaf/sky/yellow/sage/peach -- same hexes stats.js's DEPTS map and
+   the backend payload's dept.color use, kept deliberately, not swapped for
+   a new palette) now show up as real color -- solid kicker chips, tinted
+   department cards, a full-bleed color-break slide -- instead of mostly
+   living as small text accents on cream.
 
    Reskinned from the earlier "Celaville" village-storybook system for the
    thank-you-only audience this site now serves. The MECHANICAL contract
    (container-type:size on #frame, the fixed-px type scale, the .slide/
-   .inner/.bar/.chart-*/.donut/.picto-*/.vbars structure app.js and
-   slides.js build and animate) is unchanged -- only the skin is new.
-   ───────────────────────────────────────────────────────────────────────── */
+   .inner/.bar/.picto-*/.meter-* structure app.js and slides.js build and
+   animate) is unchanged -- only the skin is new. */
 @font-face{
   font-family:'Bevan';font-style:normal;font-weight:400;font-display:swap;
   src:url('fonts/bevan-400.woff2') format('woff2');
@@ -23,15 +27,6 @@
 @font-face{
   font-family:'Montserrat';font-style:normal;font-weight:400 700;font-display:swap;
   src:url('fonts/montserrat-variable.woff2') format('woff2');
-}
-/* Registered custom property: lets the donut's conic-gradient stop actually
-   transition instead of snapping, so the ring sweeps in sync with the
-   countUp digits (app.js drives --p via rAF, slides.js's countUp() drives
-   the digits, both keyed to the same duration). */
-@property --p{
-  syntax:'<number>';
-  inherits:false;
-  initial-value:0;
 }
 :root{
   /* ── palette ──────────────────────────────────────────────────────────
@@ -97,6 +92,14 @@ body{
     border-radius:8px 8px 8px 8px;
     border:3px solid var(--ink-strong);
   }
+  /* app.js already toggled #frame.on-break for a 'v-break' slide (a
+     full-bleed act-break treatment carried over from the pre-redesign
+     deck) but nothing ever styled it, so it was a no-op. The color-splash
+     slide is the first thing to actually use it: on desktop where #frame
+     has its own border, that border would cut the bleed color off at a
+     hard edge, so it drops away for the one slide that wants the color to
+     reach the frame's own corners. */
+  #frame.on-break{border-color:transparent;box-shadow:0 16px 36px rgba(61,50,42,.24)}
 }
 /* Deckled/torn paper edge along the top and bottom of the letter -- a thin
    zigzag mask cut from the paper itself, the way a real deckle-edged sheet
@@ -184,6 +187,20 @@ body.paused .bar.active > i{animation-play-state:paused}
 }
 @media(min-width:420px){.inner{padding:74px 32px 92px}}
 
+/* One pure-color breather slide, mid-deck, with no card/stat/chart on it at
+   all -- see slides.js's 'v-break' comment for why. Full-bleed color rather
+   than the cream-paper-plus-small-accent every other slide uses; the
+   gradient stays within the two coral steps already in the palette so it
+   doesn't introduce a new hue, just uses the existing accent at full
+   strength for once instead of as a small detail. */
+.slide.v-break{
+  background:linear-gradient(155deg, var(--coral) 0%, var(--coral-onwhite) 100%);
+}
+.slide.v-break .inner{text-align:center;align-items:center}
+.slide.v-break h1,.slide.v-break h2{color:#fff}
+.slide.v-break p{color:rgba(255,255,255,.95)}
+.slide.v-break .sm{color:rgba(255,255,255,.8)}
+
 /* Ink-bleed entrance: each element settles in as though the ink is still
    drying -- a soft rise plus a very slight letter-spacing collapse, rather
    than a hard slide-up. No filter/blur is used on anything that is an
@@ -208,11 +225,19 @@ body.paused .bar.active > i{animation-play-state:paused}
 @keyframes inkbleed{to{opacity:1;transform:none;letter-spacing:normal}}
 
 /* ── type ────────────────────────────────────────────────── */
+/* A small solid-color pill, not just colored text -- reads like a little
+   wax stamp on the page (the accent's own job elsewhere in this system) and
+   gives every slide a bolder anchor point than a thin uppercase label did.
+   --coral-onwhite (not the bare --coral) because it's the variant already
+   measured at 4.58:1 for white text on top of it. */
 .kicker{
-  font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;font-weight:700;
-  color:var(--coral-text);margin:0 0 14px;font-family:'Montserrat';
+  display:inline-block;
+  font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;
+  color:#fff;background:var(--coral-onwhite);
+  padding:6px 13px;border-radius:99px;
+  margin:0 0 16px;font-family:'Montserrat';
 }
-.kicker .cn{color:var(--leaf);font-size:1.1em}
+.kicker .cn{color:#fff;opacity:.8;font-size:1em}
 h1{font-family:'Bevan',Georgia,serif;font-weight:400;font-size:clamp(34px,10vw,48px);font-size:clamp(34px,10cqw,48px);line-height:1.06;margin:0 0 14px;color:var(--ink)}
 h2{font-family:'Grandstander';font-size:clamp(23px,6.6vw,32px);font-size:clamp(23px,6.6cqw,32px);line-height:1.2;font-weight:800;margin:0 0 14px;letter-spacing:-.01em;color:var(--ink)}
 h3{font-family:'Grandstander';font-size:19px;font-weight:800;margin:0 0 8px;color:var(--ink)}
@@ -293,73 +318,53 @@ p{font-size:17px;line-height:1.6;margin:0 0 14px;color:var(--ink);opacity:.85}
 .letter-message p{font-family:inherit;font-weight:inherit;font-size:inherit;line-height:inherit;color:inherit;opacity:1;margin:0 0 12px}
 .letter-signoff{font-family:'Bevan',Georgia,serif;font-size:16px;color:var(--muted);margin-top:4px}
 
-/* ── charts (unchanged shapes -- app.js's animateDonuts()/countUp() and the
-   .slide.on-triggered width transitions depend on exactly these classes) ── */
-.chart{margin:2px 0 14px}
-.chart-row{margin-bottom:11px}
-.chart-row:last-child{margin-bottom:0}
-.chart-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:5px}
-.chart-label{font-size:14.5px;font-weight:600;line-height:1.3;min-width:0;overflow-wrap:break-word}
-.chart-val{font-size:13.5px;font-weight:800;color:var(--coral-text);white-space:nowrap;flex:none}
-.chart-track{
-  position:relative;height:13px;border-radius:4px;
-  background:rgba(79,64,54,.08);
-  border:1.5px solid var(--ink-soft);overflow:hidden;
+/* ── meter (replaced the old conic-gradient .donut/.gauge ring -- flagged
+   as hard to read: a 23px number inside a thin 104px ring. Same width-
+   transition pattern as everything else here (.slide.on triggers a plain
+   CSS transition on --w), just bolder: a thicker track, a bigger number,
+   real color. A splitBar()/.splitbar sibling for the RecWeek/Welcome Week
+   mix existed briefly in this same pass but was cut again along with the
+   role breakdown it came from -- "what you gave" went back to just the
+   shift-count facts, no schedule-report content. ── */
+.meterwrap{margin:6px 0 14px}
+.meter-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:7px}
+.meter-label{font-family:'Grandstander';font-weight:800;font-size:16px;color:var(--ink)}
+.meter-pct{font-family:'Bevan',serif;font-size:28px;color:var(--coral-text);line-height:1}
+.meter-pct.leaf{color:var(--leaf)}
+.meter-track{
+  position:relative;height:22px;border-radius:11px;overflow:hidden;
+  background:rgba(79,64,54,.09);border:2px solid var(--ink-strong);
 }
-.chart-fill{
-  display:block;height:100%;width:0;border-radius:3px;
+.meter-fill{
+  display:block;height:100%;width:0;border-radius:9px;
   background:var(--coral);
   transition:width .9s var(--ease) .15s;
 }
-.slide.on .chart-fill{width:var(--w)}
-.chart-fill.leaf{background:var(--leaf)}
-.chart-fill.sky{background:var(--sky)}
-.chart-fill.ghost{background:repeating-linear-gradient(45deg,rgba(79,64,54,.22) 0 4px,transparent 4px 8px)}
-.chart-track.thin{height:8px;margin-top:4px}
-.chart-sub{font-size:12px;color:var(--muted);margin-top:3px;font-weight:600}
-
-.donutwrap{display:flex;align-items:center;gap:16px;margin:4px 0 14px}
-.donut{
-  position:relative;flex:none;width:104px;height:104px;border-radius:50%;
-  background:conic-gradient(var(--coral-onwhite) calc(var(--p) * 1%), rgba(79,64,54,.11) 0);
-  --p:0;
-  transition:--p .9s var(--ease);
-}
-@media(prefers-reduced-motion:reduce){.donut{transition:none}}
-.donut::after{
-  content:'';position:absolute;inset:15px;border-radius:50%;
-  background:linear-gradient(165deg,var(--paper-hi),var(--paper));
-  border:1px dashed var(--border-light);
-}
-.donut .mid{
-  position:absolute;inset:0;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;z-index:1;line-height:1;
-}
-.donut .mid b{font-family:'Bevan',serif;font-size:23px;color:var(--coral-text)}
-.donut .mid s{font-family:'Montserrat';font-size:9.5px;font-weight:700;letter-spacing:.1em;
-  text-transform:uppercase;color:var(--muted);text-decoration:none;margin-top:3px}
-.donutside{min-width:0;flex:1}
-.donutside .big-n{font-family:'Bevan',serif;font-size:clamp(28px,9vw,40px);font-size:clamp(28px,9cqw,40px);
-  color:var(--ink);line-height:1}
-.donutside .cap{font-size:14px;color:var(--muted);font-weight:600;margin-top:4px;line-height:1.35}
-.donut.leaf{background:conic-gradient(var(--leaf) calc(var(--p) * 1%), rgba(79,64,54,.11) 0)}
-.donut.leaf .mid b{color:var(--leaf)}
+.slide.on .meter-fill{width:var(--w)}
+.meter-fill.leaf{background:var(--leaf)}
+.meter-cap{font-size:14px;color:var(--muted);font-weight:600;margin:7px 0 0;line-height:1.35}
 
 .picto-sentence{font-size:16px;font-weight:600;line-height:1.35;margin:0 0 8px;color:var(--ink)}
 .picto-frac{font-size:12.5px;font-weight:700;color:var(--muted);margin:6px 0 0;letter-spacing:.01em}
 .picto-grid{display:flex;flex-wrap:wrap;gap:7px;margin:2px 0 4px}
 .picto-icon{
-  width:22px;height:26px;flex:none;
+  width:27px;height:31px;flex:none;
   opacity:0;transform:scale(.4);
   transition:opacity .45s var(--ease) var(--d,0s),transform .45s var(--ease) var(--d,0s);
 }
 .slide.on .picto-icon{opacity:1;transform:scale(1)}
 .picto-icon svg{width:100%;height:100%;display:block}
+/* Unfilled dots used to be a thin gray outline (fill:none + a 1.7px stroke)
+   -- next to a solid coral "on" dot that read as thin/unfinished rather
+   than deliberately empty. A solid pale-ink fill with no stroke reads as a
+   real dot either way, just a quieter one. */
 .picto-icon svg circle,.picto-icon svg path{
-  fill:none;stroke:var(--ink-soft);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;
+  fill:rgba(79,64,54,.16);stroke:none;
 }
-.picto-icon.on svg circle,.picto-icon.on svg path{fill:var(--coral);stroke:var(--ink-strong)}
+.picto-icon.on svg circle,.picto-icon.on svg path{fill:var(--coral)}
 .picto-icon.on.leaf svg circle,.picto-icon.on.leaf svg path{fill:var(--leaf)}
+.picto-icon.on.sky svg circle,.picto-icon.on.sky svg path{fill:var(--sky)}
+.picto-icon.on.peach svg circle,.picto-icon.on.peach svg path{fill:var(--peach)}
 .picto-row{margin-bottom:14px}
 .picto-row:last-child{margin-bottom:0}
 
@@ -371,48 +376,9 @@ p{font-size:17px;line-height:1.6;margin:0 0 14px;color:var(--ink);opacity:.85}
   @keyframes picto-in{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
 }
 
-.role-label{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:14px 0 2px}
-.vbars{display:flex;align-items:flex-end;gap:7px;height:132px;margin:6px 0 12px}
-.vbar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:0}
-.vbar .vnum{font-family:'Montserrat';font-size:11.5px;font-weight:800;color:var(--coral-text);margin-bottom:3px}
-/* .vtrack has an explicit height so .vcol's percentage height (--h) resolves
-   against a fixed number, not against a flex column's own auto-sized cross
-   axis -- percentage heights inside a column flex item don't reliably track
-   the intended ratio otherwise (two bars meant to differ by a third ended
-   up a few px apart, not visibly different). */
-.vbar .vtrack{width:100%;height:96px;position:relative;display:flex;align-items:flex-end}
-.vbar .vcol{
-  width:100%;height:0;border-radius:4px 4px 0 0;
-  background:rgba(79,64,54,.13);border:1.5px solid var(--ink-soft);
-  transition:height .8s var(--ease) .2s;
-}
-.slide.on .vbar .vcol{height:var(--h)}
-.vbar.me .vcol{background:var(--coral-onwhite);border-color:var(--ink-strong)}
-.vbar .vlab{font-size:10px;font-weight:700;letter-spacing:.02em;color:var(--muted);
-  margin-top:6px;text-align:center;line-height:1.15;overflow-wrap:break-word;width:100%}
-.vbar.me .vlab{color:var(--ink)}
-
-.linewrap{margin:4px 0 12px}
-.lineplot{position:relative;height:110px}
-.linechart{display:block;width:100%;height:100%;overflow:visible}
-.ldot{
-  position:absolute;width:9px;height:9px;border-radius:50%;
-  background:#fff;border:2px solid var(--ink-strong);
-  transform:translate(-50%,-50%);
-}
-.linechart .grid{stroke:rgba(79,64,54,.13);stroke-width:1;stroke-dasharray:3 4;vector-effect:non-scaling-stroke}
-.linechart .area{fill:rgba(217,79,64,.13)}
-.linechart .ln{fill:none;stroke:var(--coral-onwhite);stroke-width:2.5;stroke-linejoin:round;
-  stroke-linecap:round;vector-effect:non-scaling-stroke}
-.lineaxis{display:flex;justify-content:space-between;margin-top:5px}
-.lineaxis span{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.02em}
-
 @container fr (max-height:780px){
-  .donut{width:88px;height:88px}
-  .donut::after{inset:13px}
-  .donut .mid b{font-size:20px}
-  .vbars{height:110px}
-  .lineplot{height:92px}
+  .meter-track{height:18px}
+  .meter-pct{font-size:23px}
 }
 
 /* ── shift-window calendar strip (slide 4) ─────────────────────────────── */
@@ -430,12 +396,21 @@ p{font-size:17px;line-height:1.6;margin:0 0 14px;color:var(--ink);opacity:.85}
 /* ── stat trio + timeline (longest day / whole-team slides) ────────────── */
 .statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:4px 0 14px}
 .statbox{
-  position:relative;text-align:center;padding:12px 6px;
-  border-radius:8px;border:2px solid var(--ink-strong);
+  position:relative;text-align:center;padding:14px 6px 12px;
+  border-radius:8px;border:2px solid var(--ink-strong);border-top-width:5px;
   background:linear-gradient(165deg,var(--paper-hi),var(--paper));
   box-shadow:0 6px 14px rgba(61,50,42,.07);
 }
-.statbox .n{font-family:'Bevan',serif;font-size:clamp(20px,6.4vw,26px);font-size:clamp(20px,6.4cqw,26px);
+/* One accent, not three cycled ones: each statgrid here is a KPI row of
+   independent headline numbers (already told apart by their own text
+   label below), not a categorical series that needs color to distinguish
+   identity -- so a 3-hue cycle would have been solving a problem that
+   wasn't there, and dataviz's own validator confirms this palette's
+   pastels (sky/yellow especially) fail the chroma/contrast floor for that
+   job anyway. Boldness comes from the thicker border and bigger number
+   instead of an invented categorical scheme. */
+.statbox{border-top-color:var(--coral)}
+.statbox .n{font-family:'Bevan',serif;font-size:clamp(23px,7.2vw,30px);font-size:clamp(23px,7.2cqw,30px);
   color:var(--coral-text);line-height:1}
 .statbox .k{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
   color:var(--muted);margin-top:5px;line-height:1.2}
@@ -456,9 +431,6 @@ p{font-size:17px;line-height:1.6;margin:0 0 14px;color:var(--ink);opacity:.85}
 .tl-meta{font-size:13px;color:var(--muted);margin-top:2px;font-weight:600}
 
 @container fr (max-height:780px){
-  .chart-row{margin-bottom:9px}
-  .chart-label{font-size:13.5px}
-  .chart-track{height:11px}
   .tl-row{padding-bottom:12px}
   .tl-name{font-size:15px}
   .statbox{padding:10px 5px}
@@ -634,25 +606,26 @@ p{font-size:17px;line-height:1.6;margin:0 0 14px;color:var(--ink);opacity:.85}
   }
 }
 
-/* ── scroll-driven bar fills on tall, scroll-locked slides ─────────────── */
+/* ── scroll-driven bar fills on tall, scroll-locked slides ───────────────
+   Updated for meter (replacing chart-fill/vbar .vcol) so a tall "your
+   department" slide keeps the same scroll-linked fill-in micro-interaction
+   the old chart classes had, instead of silently losing it and falling
+   back to the plain time-based transition. */
 @supports (animation-timeline: scroll()){
-  .scroll-locked .chart-fill,
-  .scroll-locked .vbar .vcol{
+  .scroll-locked .meter-fill{
     transition:none;
-    animation:barfill-in linear both;
+    animation:barfill-in-w linear both;
     animation-timeline:scroll(nearest);
     animation-range:entry 0% cover 35%;
+    width:var(--w);
   }
-  .scroll-locked .chart-fill{ width:var(--w); animation-name:barfill-in-w; }
-  .scroll-locked .vbar .vcol{ height:var(--h); animation-name:barfill-in-h; }
   @keyframes barfill-in-w{from{width:0}to{width:var(--w)}}
-  @keyframes barfill-in-h{from{height:0}to{height:var(--h)}}
 }
 
 @media(prefers-reduced-motion:reduce){
   *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
   .slide.on .inner > *{opacity:1;transform:none;letter-spacing:normal}
-  .scroll-locked .chart-fill,.scroll-locked .vbar .vcol{animation:none !important}
+  .scroll-locked .meter-fill{animation:none !important}
   .scroll-locked .picto-icon{animation:none !important}
 }
 

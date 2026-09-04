@@ -105,12 +105,15 @@ var CelavilleAPI = (function(){
     });
   }
 
-  /* token: the member's ?id= value. mock: truthy to hit ?api=1&mock=1
+  /* token: the member's ?id= value. mock: truthy to hit ?api=1&mock=<value>
      instead (shareable fabricated-data demo payload, used by local dev and
-     by the curl smoke test in the README). Returns a Promise<payload>. */
+     by the curl smoke test in the README) -- the value itself is forwarded
+     as-is (not collapsed to "1") so ?mock=low on this site's own URL reaches
+     Code.gs's mockLowShiftPayload_() rather than always landing on the
+     normal mockPayload_(). Returns a Promise<payload>. */
   function loadPayload(token, mock){
     var cached = !mock && token ? readCache(token) : null;
-    var url = WEB_APP_URL + '?api=1' + (mock ? '&mock=1' : ('&id=' + encodeURIComponent(token)));
+    var url = WEB_APP_URL + '?api=1' + (mock ? '&mock=' + encodeURIComponent(mock) : ('&id=' + encodeURIComponent(token)));
 
     var network = attemptWithRetry(url).then(function(envelope){
       if(!envelope || envelope.ok !== true){

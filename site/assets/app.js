@@ -55,20 +55,6 @@ function buildDom(){
   });
 }
 
-/* Animates a .donut's --p custom property from 0 up to its data-p target, in
-   sync with the countUp digits beside it (slides.js). Only meaningful where
-   @property --p is registered (styles.css) so the value can transition at
-   all -- elsewhere this just sets the end value immediately, which is the
-   original static-ring behavior and a perfectly safe fallback. */
-function animateDonuts(root){
-  Array.prototype.forEach.call(root.querySelectorAll('.donut[data-p]'), function(el){
-    var target = el.getAttribute('data-p');
-    el.style.setProperty('--p', 0);
-    void el.offsetWidth; // force a style flush so the 0 actually paints...
-    requestAnimationFrame(function(){ el.style.setProperty('--p', target); }); // ...before this transitions
-  });
-}
-
 /* ── round 2, item 5: screen-reader companion ─────────────────────────────
    Mirrors each slide's kicker + heading into the visually-hidden #slidelive
    region (index.html) so a reader following along by ear hears the same
@@ -181,7 +167,6 @@ function show(i){
     CelavilleAPI.ping(TOK, i+1, S.length);
     slideEls[i].scrollTop=0;
     Array.prototype.forEach.call(slideEls[i].querySelectorAll('[data-count]'),countUp);
-    animateDonuts(slideEls[i]);
     applyScrollState(true);
     if(slideEls[i].classList.contains('v-persona')) vibrate(30);
     if(i===S.length-1) vibrate([0,14,110,14,240,18]); // little celebratory pattern for reaching the recap
